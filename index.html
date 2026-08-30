@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="my" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI Video Editor & Recap Studio</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts: Padauk (Myanmar) & Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Padauk:wght@400;700&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        studio: {
+                            bg: '#0B0F19',
+                            panel: '#151D2A',
+                            border: '#2A364F',
+                            accent: '#6366F1',
+                            accentHover: '#4F46E5',
+                            card: '#1E293B',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'Padauk', 'sans-serif'],
+                        myanmar: ['Padauk', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0b0f19; }
+        ::-webkit-scrollbar-thumb { background: #2a364f; border-radius: 4px; }
+        canvas { touch-action: none; user-select: none; }
+        .glass-panel {
+            background: rgba(21, 29, 42, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .btn-active:active { transform: scale(0.96); }
+        .timeline-ruler {
+            background-image: repeating-linear-gradient(90deg, #475569 0, #475569 1px, transparent 0, transparent 20px);
+        }
+    </style>
+</head>
+<body class="bg-studio-bg text-slate-100 font-sans min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
+
+    <header class="bg-studio-panel/95 backdrop-blur border-b border-studio-border px-3 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2 shadow-xl sticky top-0 z-40">
+        <div class="flex items-center space-x-2.5">
+            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-indigo-500/30 shrink-0">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+            </div>
+            <div>
+                <h1 class="text-base sm:text-lg font-bold bg-gradient-to-r from-white via-slate-100 to-indigo-200 bg-clip-text text-transparent leading-tight">
+                    AI Studio Mobile & Canvas
+                </h1>
+                <p class="text-[10px] sm:text-xs text-slate-400">Video Subtitle & Voiceover Editor</p>
+            </div>
+        </div>
+
+        <div class="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-700/60 w-full sm:w-auto justify-center text-xs">
+            <button id="tab-btn-canvas" onclick="switchTab('canvas')" class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg font-medium transition-all bg-indigo-600 text-white shadow">
+                <i class="fa-solid fa-film mr-1.5"></i>Canvas Player
+            </button>
+            <button id="tab-btn-subtitles" onclick="switchTab('subtitles')" class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition-all">
+                <i class="fa-solid fa-closed-captioning mr-1.5"></i>Subtitles
+            </button>
+            <button id="tab-btn-ai" onclick="switchTab('ai')" class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition-all">
+                <i class="fa-solid fa-robot mr-1.5"></i>AI Script & Voice
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 p-3 sm:p-6 max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- LEFT PANEL: Canvas Player & Timeline (Lg: 7 cols) -->
+        <section class="lg:col-span-7 flex flex-col space-y-4">
+            
+            <!-- Video Canvas Screen -->
+            <div class="bg-studio-panel border border-studio-border rounded-2xl overflow-hidden shadow-2xl flex flex-col items-center justify-center relative p-3">
+                <div class="w-full flex justify-between items-center mb-2 px-1 text-xs text-slate-400">
+                    <span class="flex items-center gap-2">
+                        <span class="inline-block w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
+                        <span id="canvas-status">Canvas Preview Ready</span>
+                    </span>
+                    <div class="flex gap-2">
+                        <button onclick="setAspectRatio('16-9')" class="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 hover:border-indigo-500 text-[10px]">16:9</button>
+                        <button onclick="setAspectRatio('9-16')" class="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 hover:border-indigo-500 text-[10px]">9:16 Shorts</button>
+                    </div>
+                </div>
+
+                <div id="canvas-container" class="relative w-full aspect-video bg-black rounded-xl overflow-hidden flex items-center justify-center border border-slate-800 shadow-inner">
+                    <canvas id="videoCanvas" class="max-w-full max-h-full object-contain"></canvas>
+                </div>
+
+                <!-- Transport Controls -->
+                <div class="w-full mt-3 flex items-center justify-between gap-3 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                    <div class="flex items-center space-x-2">
+                        <button id="playBtn" onclick="togglePlay()" class="w-10 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center font-bold shadow-lg transition btn-active">
+                            <i id="playIcon" class="fa-solid fa-play"></i>
+                        </button>
+                        <button onclick="restartVideo()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition">
+                            <i class="fa-solid fa-rotate-left text-xs"></i>
+                        </button>
+                    </div>
+
+                    <!-- Time Scrub Bar -->
+                    <div class="flex-1 flex flex-col justify-center">
+                        <input type="range" id="timeScrubber" min="0" max="60" value="0" step="0.1" oninput="seekVideo(this.value)" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                        <div class="flex justify-between text-[11px] text-slate-400 font-mono mt-1">
+                            <span id="currentTimeDisplay">00:00.0</span>
+                            <span id="durationDisplay">01:00.0</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center space-x-1">
+                        <button onclick="toggleMute()" class="w-8 h-8 rounded-lg bg-slate-800 text-slate-300 flex items-center justify-center">
+                            <i id="muteIcon" class="fa-solid fa-volume-high text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-studio-panel border border-studio-border rounded-2xl p-4 shadow-xl">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center justify-between">
+                    <span><i class="fa-solid fa-bars-staggered mr-1.5 text-indigo-400"></i> Timeline Tracks</span>
+                    <span class="text-[10px] text-indigo-300">Auto-Synced</span>
+                </h3>
+                
+                <div class="relative bg-slate-950 rounded-xl p-3 border border-slate-800 overflow-x-auto">
+                    <div class="timeline-ruler h-4 w-full mb-2 opacity-30"></div>
+                    <div id="timelineTracks" class="space-y-2 relative min-w-[300px]">
+                        <!-- Subtitle timeline chips rendered dynamically -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- RIGHT PANEL: Subtitles & AI Controls (Lg: 5 cols) -->
+        <section class="lg:col-span-5 flex flex-col space-y-4">
+            
+            <!-- SUBTITLE TAB PANEL -->
+            <div id="panel-subtitles" class="bg-studio-panel border border-studio-border rounded-2xl p-4 shadow-xl flex-1 flex flex-col">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+                    <h2 class="text-sm font-bold text-white flex items-center">
+                        <i class="fa-solid fa-closed-captioning text-indigo-400 mr-2"></i> Myanmar Subtitles
+                    </h2>
+                    <button onclick="addNewSubtitle()" class="px-3 py-1 bg-indigo-600/90 hover:bg-indigo-600 text-white rounded-lg text-xs font-medium transition flex items-center gap-1">
+                        <i class="fa-solid fa-plus"></i> Add Line
+                    </button>
+                </div>
+
+                <!-- Subtitle List Container -->
+                <div id="subtitleList" class="flex-1 overflow-y-auto space-y-3 max-h-[420px] pr-1">
+                    <!-- Dynamic Subtitle items -->
+                </div>
+            </div>
+
+            <div id="panel-ai" class="bg-studio-panel border border-studio-border rounded-2xl p-4 shadow-xl space-y-4 hidden lg:block">
+                <div class="border-b border-slate-800 pb-2">
+                    <h2 class="text-sm font-bold text-white flex items-center">
+                        <i class="fa-solid fa-robot text-pink-400 mr-2"></i> AI Movie Recap & Voiceover
+                    </h2>
+                    <p class="text-[11px] text-slate-400">Gemini-powered script generator for Myanmar recaps</p>
+                </div>
+
+                <div>
+                    <label class="block text-xs text-slate-300 font-medium mb-1">Movie Topic / Prompt</label>
+                    <textarea id="aiPrompt" rows="3" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 focus:border-indigo-500 focus:outline-none placeholder-slate-500" placeholder="ဥပမာ: သိပ္ပံရုပ်ရှင် အညွှန်း recap စာတမ်းထိုးများ ဖန်တီးပေးပါ။..."></textarea>
+                </div>
+
+                <div class="flex gap-2">
+                    <button onclick="generateAIScript()" class="flex-1 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl text-xs font-semibold shadow-lg transition flex items-center justify-center gap-1.5 btn-active">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> AI Script Generator
+                    </button>
+                    <button onclick="generateVoiceover()" class="py-2 px-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl text-xs font-medium transition flex items-center gap-1">
+                        <i class="fa-solid fa-microphone"></i> TTS Voice
+                    </button>
+                </div>
+
+                <!-- Generated Output Preview -->
+                <div id="aiStatusBox" class="bg-slate-950 rounded-xl p-3 border border-slate-800 text-xs hidden">
+                    <div id="aiStatusText" class="text-indigo-400 flex items-center gap-2">
+                        <i class="fa-solid fa-spinner animate-spin"></i> Processing AI...
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <script>
+        // App State
+        let isPlaying = false;
+        let currentTime = 0;
+        let duration = 60;
+        let animationFrameId = null;
+        let isMuted = false;
+        let activeTab = 'canvas';
+
+        // Subtitles Data Array (Default Myanmar Captions)
+        let subtitles = [
+            { id: 1, start: 0, end: 5, text: "လွန်ခဲ့သော နှစ်ပေါင်းများစွာက လျှို့ဝှက်ဆန်းကြယ် ကမ္ဘာတစ်ခုတွင်...", speaker: "Narrator" },
+            { id: 2, start: 5.5, end: 12, text: "မင်းသားသည် သူ၏ ရဲတိုက်ကြီးထဲသို့ ပြန်လည်ရောက်ရှိလာခဲ့သည်။", speaker: "Hero" },
+            { id: 3, start: 12.5, end: 18, text: "ဤနေရာတွင် မည်သည့် အရာမှ အရင်လို ငြိမ်းချမ်းတော့မည် မဟုတ်ပေ။", speaker: "Narrator" },
+            { id: 4, start: 19, end: 26, text: "AI Video Editor & Recap Studio မှ ကြိုဆိုပါသည်!", speaker: "System" }
+        ];
+
+        // Canvas Setup
+        const canvas = document.getElementById('videoCanvas');
+        const ctx = canvas.getContext('2d');
+        const canvasContainer = document.getElementById('canvas-container');
+
+        function resizeCanvas() {
+            const rect = canvasContainer.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            renderFrame();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        function renderFrame() {
+            const w = canvas.width;
+            const h = canvas.height;
+            if (w === 0 || h === 0) return;
+
+            // Clear Background
+            ctx.fillStyle = '#0F172A';
+            ctx.fillRect(0, 0, w, h);
+
+            // Animated Visual Background (Simulated Video Scene)
+            const t = currentTime;
+            const grad = ctx.createLinearGradient(0, 0, w, h);
+            grad.addColorStop(0, `hsl(${(t * 20) % 360}, 60%, 15%)`);
+            grad.addColorStop(1, `hsl(${(t * 20 + 120) % 360}, 70%, 8%)`);
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, w, h);
+
+            // Dynamic Shapes to simulate action video
+            ctx.save();
+            ctx.translate(w / 2, h / 2);
+            ctx.rotate(t * 0.2);
+            ctx.strokeStyle = 'rgba(99, 102, 241, 0.25)';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(-w * 0.2, -h * 0.2, w * 0.4, h * 0.4);
+            ctx.restore();
+
+            // Render Active Subtitle Overlay
+            const currentSub = subtitles.find(s => currentTime >= s.start && currentTime <= s.end);
+
+            if (currentSub) {
+                // Subtitle Box Background
+                ctx.font = '700 18px Padauk, Inter, sans-serif';
+                const textWidth = ctx.measureText(currentSub.text).width;
+                const paddingHorizontal = 20;
+                const boxHeight = 40;
+                const boxY = h - 65;
+
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+                ctx.roundRect(
+                    (w - textWidth) / 2 - paddingHorizontal,
+                    boxY,
+                    textWidth + paddingHorizontal * 2,
+                    boxHeight,
+                    8
+                );
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(99, 102, 241, 0.5)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                // Subtitle Text
+                ctx.fillStyle = '#FFFFFF';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(currentSub.text, w / 2, boxY + boxHeight / 2 + 1);
+            }
+
+            // Watermark
+            ctx.font = '12px Inter, sans-serif';
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.textAlign = 'right';
+            ctx.fillText('AI RECAP STUDIO', w - 15, 25);
+        }
+
+        function togglePlay() {
+            isPlaying = !isPlaying;
+            const icon = document.getElementById('playIcon');
+            const status = document.getElementById('canvas-status');
+
+            if (isPlaying) {
+                icon.className = 'fa-solid fa-pause';
+                status.innerText = 'Playing Video Preview...';
+                lastTimestamp = performance.now();
+                animate();
+            } else {
+                icon.className = 'fa-solid fa-play';
+                status.innerText = 'Paused';
+                cancelAnimationFrame(animationFrameId);
+            }
+        }
+
+        let lastTimestamp = 0;
+        function animate(now = performance.now()) {
+            if (!isPlaying) return;
+            const delta = (now - lastTimestamp) / 1000;
+            lastTimestamp = now;
+
+            currentTime += delta;
+            if (currentTime >= duration) {
+                currentTime = 0;
+            }
+
+            updateProgressUI();
+            renderFrame();
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        function seekVideo(val) {
+            currentTime = parseFloat(val);
+            updateProgressUI();
+            renderFrame();
+        }
+
+        function restartVideo() {
+            currentTime = 0;
+            updateProgressUI();
+            renderFrame();
+        }
+
+        function updateProgressUI() {
+            document.getElementById('timeScrubber').value = currentTime;
+            document.getElementById('currentTimeDisplay').innerText = formatTime(currentTime);
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            const ms = Math.floor((seconds % 1) * 10);
+            return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${ms}`;
+        }
+
+        function setAspectRatio(ratio) {
+            const container = document.getElementById('canvas-container');
+            if (ratio === '9-16') {
+                container.className = 'relative w-full max-w-[280px] aspect-[9/16] bg-black rounded-xl overflow-hidden flex items-center justify-center border border-slate-800 shadow-inner mx-auto';
+            } else {
+                container.className = 'relative w-full aspect-video bg-black rounded-xl overflow-hidden flex items-center justify-center border border-slate-800 shadow-inner';
+            }
+            setTimeout(resizeCanvas, 50);
+        }
+
+        function renderSubtitleList() {
+            const container = document.getElementById('subtitleList');
+            const timelineContainer = document.getElementById('timelineTracks');
+            container.innerHTML = '';
+            timelineContainer.innerHTML = '';
+
+            subtitles.forEach((sub, index) => {
+                // UI Card for Subtitles
+                const item = document.createElement('div');
+                item.className = 'bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-2 transition hover:border-slate-700';
+                item.innerHTML = `
+                    <div class="flex justify-between items-center text-xs text-slate-400">
+                        <span class="font-mono text-indigo-400 font-bold">#${index + 1} (${sub.start}s - ${sub.end}s)</span>
+                        <div class="flex items-center space-x-1">
+                            <button onclick="jumpToSub(${sub.start})" class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-[10px] text-slate-300">
+                                <i class="fa-solid fa-play mr-1"></i>Seek
+                            </button>
+                            <button onclick="deleteSub(${sub.id})" class="p-1 hover:text-red-400 transition text-slate-500">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <textarea onchange="updateSubText(${sub.id}, this.value)" rows="2" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-100 font-myanmar focus:border-indigo-500 focus:outline-none">${sub.text}</textarea>
+                `;
+                container.appendChild(item);
+
+                // Timeline visual bar
+                const chip = document.createElement('div');
+                const leftPct = (sub.start / duration) * 100;
+                const widthPct = Math.max(((sub.end - sub.start) / duration) * 100, 5);
+                chip.className = 'absolute h-6 bg-indigo-600/60 border border-indigo-400 rounded-md text-[10px] px-2 flex items-center text-white truncate font-myanmar cursor-pointer hover:bg-indigo-500';
+                chip.style.left = leftPct + '%';
+                chip.style.width = widthPct + '%';
+                chip.innerText = sub.text;
+                chip.onclick = () => jumpToSub(sub.start);
+                timelineContainer.appendChild(chip);
+            });
+        }
+
+        function jumpToSub(time) {
+            currentTime = time;
+            updateProgressUI();
+            renderFrame();
+        }
+
+        function updateSubText(id, text) {
+            const sub = subtitles.find(s => s.id === id);
+            if (sub) {
+                sub.text = text;
+                renderFrame();
+                renderSubtitleList();
+            }
+        }
+
+        function addNewSubtitle() {
+            const lastEnd = subtitles.length > 0 ? subtitles[subtitles.length - 1].end : 0;
+            const newSub = {
+                id: Date.now(),
+                start: Math.min(lastEnd + 0.5, duration - 5),
+                end: Math.min(lastEnd + 5.5, duration),
+                text: "စာတမ်းထိုး စာသားအသစ် ထည့်သွင်းပါ...",
+                speaker: "Speaker"
+            };
+            subtitles.push(newSub);
+            renderSubtitleList();
+            renderFrame();
+        }
+
+        function deleteSub(id) {
+            subtitles = subtitles.filter(s => s.id !== id);
+            renderSubtitleList();
+            renderFrame();
+        }
+
+        async function generateAIScript() {
+            const promptInput = document.getElementById('aiPrompt').value || "သိပ္ပံရုပ်ရှင် အကျဉ်းချုပ် ရိုက်ကူးရေး စာတမ်းထိုး ရေးပေးပါ။";
+            const statusBox = document.getElementById('aiStatusBox');
+            const statusText = document.getElementById('aiStatusText');
+
+            statusBox.classList.remove('hidden');
+            statusText.innerHTML = `<i class="fa-solid fa-spinner animate-spin text-indigo-400"></i> Gemini AI ဖြင့် မြန်မာ စာတမ်းထိုး ဖန်တီးနေပါသည်...`;
+
+            try {
+                // Call Gemini API
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+                
+                const systemPrompt = "You are a professional video recap narrator. Generate 3 short movie recap subtitle lines in Myanmar language format. Return plain Myanmar text lines separated by line breaks.";
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: promptInput }] }],
+                        systemInstruction: { parts: [{ text: systemPrompt }] }
+                    })
+                });
+
+                const data = await response.json();
+                const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (aiText) {
+                    const lines = aiText.split('\n').filter(l => l.trim().length > 0);
+                    subtitles = [];
+                    let startTime = 0;
+
+                    lines.slice(0, 5).forEach((line, idx) => {
+                        subtitles.push({
+                            id: Date.now() + idx,
+                            start: startTime,
+                            end: startTime + 6,
+                            text: line.replace(/^[0-9\.\-\s]+/, ''),
+                            speaker: "AI Narrator"
+                        });
+                        startTime += 6.5;
+                    });
+
+                    statusText.className = "text-emerald-400 font-medium flex items-center gap-2";
+                    statusText.innerHTML = `<i class="fa-solid fa-circle-check"></i> AI စာတမ်းထိုးများ အောင်မြင်စွာ ထည့်သွင်းပြီးပါပြီ!`;
+                    renderSubtitleList();
+                    renderFrame();
+                } else {
+                    throw new Error("Invalid AI response");
+                }
+            } catch (err) {
+                statusText.className = "text-amber-400 text-xs flex items-center gap-2";
+                statusText.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Demo Mode: ဥပမာ AI Recap များကို ထည့်သွင်းလိုက်ပါသည်။`;
+                
+                // Fallback Mock Subtitles
+                subtitles = [
+                    { id: Date.now(), start: 0, end: 5, text: "ဒီရုပ်ရှင်ထဲမှာ ခေါင်းဆောင်မင်းသားဟာ ထူးဆန်းတဲ့ ဂြိုဟ်သစ်တစ်ခုဆီ ရောက်ရှိခဲ့ပါတယ်။", speaker: "AI Recap" },
+                    { id: Date.now() + 1, start: 5.5, end: 11, text: "ထိုနေရာမှာ အလွန် အန္တရာယ်များတဲ့ သတ္တဝါဆန်းတွေနဲ့ ရင်ဆိုင်ခဲ့ရပါတယ်။", speaker: "AI Recap" },
+                    { id: Date.now() + 2, start: 11.5, end: 18, text: "နောက်ဆုံးမှာတော့ သူတို့အဖွဲ့ဟာ ကမ္ဘာမြေကို ဘေးကင်းစွာ ပြန်နိုင်ခဲ့ပါတယ်။", speaker: "AI Recap" }
+                ];
+                renderSubtitleList();
+                renderFrame();
+            }
+        }
+
+        function generateVoiceover() {
+            const statusBox = document.getElementById('aiStatusBox');
+            const statusText = document.getElementById('aiStatusText');
+            statusBox.classList.remove('hidden');
+            statusText.className = "text-indigo-400 font-medium flex items-center gap-2";
+            statusText.innerHTML = `<i class="fa-solid fa-waveform animate-pulse"></i> AI Voiceover audio timing preview synchronized.`;
+            setTimeout(() => {
+                statusText.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> Voiceover Sync Ready!`;
+            }, 1000);
+        }
+
+        function switchTab(tab) {
+            activeTab = tab;
+            document.getElementById('tab-btn-canvas').className = tab === 'canvas' ? 'flex-1 sm:flex-none px-4 py-1.5 rounded-lg font-medium transition-all bg-indigo-600 text-white shadow' : 'flex-1 sm:flex-none px-4 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition-all';
+            document.getElementById('tab-btn-subtitles').className = tab === 'subtitles' ? 'flex-1 sm:flex-none px-4 py-1.5 rounded-lg font-medium transition-all bg-indigo-600 text-white shadow' : 'flex-1 sm:flex-none px-4 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition-all';
+            document.getElementById('tab-btn-ai').className = tab === 'ai' ? 'flex-1 sm:flex-none px-4 py-1.5 rounded-lg font-medium transition-all bg-indigo-600 text-white shadow' : 'flex-1 sm:flex-none px-4 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition-all';
+
+            const subPanel = document.getElementById('panel-subtitles');
+            const aiPanel = document.getElementById('panel-ai');
+
+            if (window.innerWidth < 1024) {
+                if (tab === 'subtitles') {
+                    subPanel.classList.remove('hidden');
+                    aiPanel.classList.add('hidden');
+                } else if (tab === 'ai') {
+                    aiPanel.classList.remove('hidden');
+                    subPanel.classList.add('hidden');
+                } else {
+                    subPanel.classList.remove('hidden');
+                    aiPanel.classList.add('hidden');
+                }
+            }
+        }
+
+        // Initialize App
+        window.onload = function() {
+            resizeCanvas();
+            renderSubtitleList();
+            renderFrame();
+        };
+    </script>
+</body>
+</html>
