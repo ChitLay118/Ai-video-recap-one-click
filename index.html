@@ -1,547 +1,1305 @@
 <!DOCTYPE html>
 <html lang="my" class="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI Video Editor & Recap Studio</title>
-
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Font Awesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Google Fonts: Padauk (Myanmar) & Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Padauk:wght@400;700&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        studio: {
-                            bg: '#0B0F19',
-                            panel: '#151D2A',
-                            border: '#2A364F',
-                            accent: '#6366F1',
-                            accentHover: '#4F46E5',
-                            card: '#1E293B',
-                        }
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'Padauk', 'sans-serif'],
-                        myanmar: ['Padauk', 'sans-serif'],
-                    }
-                }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StudioFlow - မြန်မာ AI ဗီဒီယို တည်းဖြတ်ဆော့ဖ်ဝဲ</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Google Fonts for Myanmar Text -->
+  <link href="https://fonts.googleapis.com/css2?family=Padauk:wght@400;700&family=Pyidaungsu:wght@400;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            mm: ['Pyidaungsu', 'Padauk', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
             }
+          }
         }
-    </script>
+      }
+    }
+  </script>
+  <style>
+    /* Custom Scrollbars & Utilities */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #1e293b; }
+    ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+    
+    body {
+      font-family: 'Pyidaungsu', 'Padauk', sans-serif;
+    }
 
-    <style>
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #0b0f19; }
-        ::-webkit-scrollbar-thumb { background: #2a364f; border-radius: 4px; }
-        canvas { touch-action: none; user-select: none; }
-        .glass-panel {
-            background: rgba(21, 29, 42, 0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-        }
-        .btn-active:active { transform: scale(0.96); }
-        .timeline-ruler {
-            background-image: repeating-linear-gradient(90deg, #475569 0, #475569 1px, transparent 0, transparent 20px);
-        }
-    </style>
+    .canvas-container {
+      position: relative;
+      touch-action: none;
+      user-select: none;
+    }
+  </style>
 </head>
-<body class="bg-studio-bg text-slate-100 font-sans min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased overflow-x-hidden">
 
-    <header class="bg-studio-panel/95 backdrop-blur border-b border-studio-border px-3 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2 shadow-xl sticky top-0 z-40">
-        <div class="flex items-center space-x-2.5">
-            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-indigo-500/30 shrink-0">
-                <i class="fa-solid fa-wand-magic-sparkles"></i>
+  <!-- Header Section -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-40 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center space-x-3">
+      <div class="bg-indigo-600 p-2 rounded-lg text-white">
+        <i data-lucide="clapperboard" class="w-5 h-5"></i>
+      </div>
+      <div>
+        <h1 class="font-bold text-lg leading-none text-white">StudioFlow AI (မြန်မာ)</h1>
+        <p class="text-xs text-slate-400">100% Client-Side Browser Video Studio</p>
+      </div>
+    </div>
+
+    <!-- Mode Selector Tabs -->
+    <div class="flex bg-slate-800 p-1 rounded-xl border border-slate-700/60">
+      <button id="tabSubtitleBtn" onclick="switchMode('subtitle')" class="flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all bg-indigo-600 text-white shadow-sm">
+        <i data-lucide="captions" class="w-3.5 h-3.5"></i>
+        <span>စာတန်းထိုး မုဒ် (Subtitle)</span>
+      </button>
+      <button id="tabRecapBtn" onclick="switchMode('recap')" class="flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all text-slate-400 hover:text-white">
+        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
+        <span>AI Recap မုဒ်</span>
+      </button>
+    </div>
+
+    <!-- Export Action Button -->
+    <button id="exportBtn" onclick="startExport()" class="flex items-center space-x-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg transition shadow-lg shadow-emerald-900/30 disabled:opacity-50">
+      <i data-lucide="download" class="w-4 h-4"></i>
+      <span>ဗီဒီယို ထုတ်ယူမည် (Export)</span>
+    </button>
+  </header>
+
+  <!-- Main Content Layout -->
+  <div class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+    
+    <!-- LEFT PANEL: Controls & AI Options -->
+    <aside class="w-full lg:w-96 border-b lg:border-b-0 lg:border-r border-slate-800 bg-slate-900 flex flex-col shrink-0 h-[50vh] lg:h-auto overflow-y-auto">
+      
+      <!-- GEMINI API KEY INPUT SECTION -->
+      <div class="p-4 bg-slate-850 border-b border-slate-800 space-y-2">
+        <div class="flex items-center justify-between">
+          <label class="text-xs font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
+            <i data-lucide="key" class="w-3.5 h-3.5"></i>
+            <span>Gemini API Key (စိတ်ကြိုက်)</span>
+          </label>
+          <span id="apiKeyStatus" class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-800/50">Auto Key အသုံးပြုနေသည်</span>
+        </div>
+        <div class="relative">
+          <input type="password" id="customApiKeyInput" oninput="saveCustomApiKey()" placeholder="ဆန္ဒရှိပါက သီးသန့် API Key ထည့်နိုင်ပါသည်" class="w-full bg-slate-800 border border-slate-700 rounded-lg pl-2.5 pr-8 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-indigo-500">
+          <button onclick="toggleApiKeyVisibility()" class="absolute right-2 top-2 text-slate-400 hover:text-white">
+            <i id="eyeIcon" data-lucide="eye" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+        <p class="text-[10px] text-slate-500">မထည့်ပါကလည်း စနစ်မှ Auto Key ဖြင့် အလိုအလျောက် အလုပ်လုပ်ပေးမည်ဖြစ်သည်။</p>
+      </div>
+
+      <!-- SUBTITLE MODE PANEL -->
+      <div id="panelSubtitle" class="p-4 space-y-6">
+        
+        <!-- Video Upload Section -->
+        <div class="space-y-2">
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-400">၁။ ဗီဒီယို ရွေးချယ်ရန် (Media Source)</label>
+          <div class="border-2 border-dashed border-slate-700 hover:border-indigo-500/50 rounded-xl p-4 text-center cursor-pointer transition bg-slate-850/50" onclick="document.getElementById('videoFileInput').click()">
+            <input type="file" id="videoFileInput" accept="video/mp4,video/webm" class="hidden" onchange="handleVideoUpload(event)" />
+            <i data-lucide="upload-cloud" class="w-8 h-8 mx-auto mb-2 text-indigo-400"></i>
+            <p class="text-xs text-slate-300 font-medium">ဗီဒီယို တင်ရန် နှိပ်ပါ (MP4/WebM)</p>
+            <p class="text-[10px] text-slate-500 mt-0.5">၁၀၀% Browser ထဲတွင်သာ တိုက်ရိုက်လုပ်ဆောင်သည်</p>
+          </div>
+          <button onclick="loadDemoVideo()" class="w-full text-xs text-indigo-400 hover:text-indigo-300 py-1 text-center font-medium">
+            သို့မဟုတ် နမူနာ (Demo) ဗီဒီယိုကို စမ်းသပ်သုံးရန်
+          </button>
+        </div>
+
+        <!-- Subtitles Import / AI Gen (MYANMAR ONLY) -->
+        <div class="space-y-2 border-t border-slate-800 pt-4">
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-400">၂။ မြန်မာ စာတန်းထိုး (Subtitles)</label>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="document.getElementById('srtFileInput').click()" class="flex items-center justify-center space-x-1.5 p-2 bg-slate-800 hover:bg-slate-750 text-slate-200 rounded-lg text-xs font-medium border border-slate-700">
+              <i data-lucide="file-text" class="w-3.5 h-3.5 text-sky-400"></i>
+              <span>.SRT ဖိုင် တင်ရန်</span>
+            </button>
+            <input type="file" id="srtFileInput" accept=".srt" class="hidden" onchange="handleSRTUpload(event)" />
+
+            <button onclick="generateAISubtitles()" id="aiSubBtn" class="flex items-center justify-center space-x-1.5 p-2 bg-indigo-950/60 hover:bg-indigo-900/80 text-indigo-200 rounded-lg text-xs font-medium border border-indigo-700/50">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-indigo-400"></i>
+              <span>မြန်မာ AI စာတန်းထိုး</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Subtitle Customization -->
+        <div class="space-y-3 border-t border-slate-800 pt-4">
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-400">၃။ စာလုံး ဒီဇိုင်း ပြင်ဆင်ရန် (Styling)</label>
+          
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <span class="text-[11px] text-slate-400 block mb-1">စာလုံး အရွယ်အစား</span>
+              <input type="range" id="subFontSize" min="16" max="60" value="28" oninput="updateSubtitleStyle()" class="w-full accent-indigo-500">
             </div>
             <div>
-                <h1 class="text-base sm:text-lg font-bold bg-gradient-to-r from-white via-slate-100 to-indigo-200 bg-clip-text text-transparent leading-tight">
-                    AI Studio Mobile & Canvas
-                </h1>
-                <p class="text-[10px] sm:text-xs text-slate-400">Video Subtitle & Voiceover Editor</p>
+              <span class="text-[11px] text-slate-400 block mb-1">စာလုံး အရောင်</span>
+              <input type="color" id="subTextColor" value="#ffffff" onchange="updateSubtitleStyle()" class="w-full h-8 bg-slate-800 border border-slate-700 rounded cursor-pointer p-0.5">
             </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <span class="text-[11px] text-slate-400 block mb-1">နောက်ခံ အရောင်</span>
+              <input type="color" id="subBgColor" value="#000000" onchange="updateSubtitleStyle()" class="w-full h-8 bg-slate-800 border border-slate-700 rounded cursor-pointer p-0.5">
+            </div>
+            <div>
+              <span class="text-[11px] text-slate-400 block mb-1">နောက်ခံ အကြည်ဒီဇိုင်း</span>
+              <input type="range" id="subBgOpacity" min="0" max="1" step="0.1" value="0.6" oninput="updateSubtitleStyle()" class="w-full accent-indigo-500">
+            </div>
+          </div>
+          <p class="text-[10px] text-slate-500 italic">💡 စာတန်းထိုး Box ကို ဗီဒီယိုပေါ်တွင် တိုက်ရိုက် ရွှေ့ပြောင်းနိုင်ပါသည်။</p>
         </div>
 
-        <div class="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-700/60 w-full sm:w-auto justify-center text-xs">
-            <button id="tab-btn-canvas" onclick="switchTab('canvas')" class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg font-medium transition-all bg-indigo-600 text-white shadow">
-                <i class="fa-solid fa-film mr-1.5"></i>Canvas Player
-            </button>
-            <button id="tab-btn-subtitles" onclick="switchTab('subtitles')" class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition-all">
-                <i class="fa-solid fa-closed-captioning mr-1.5"></i>Subtitles
-            </button>
-            <button id="tab-btn-ai" onclick="switchTab('ai')" class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition-all">
-                <i class="fa-solid fa-robot mr-1.5"></i>AI Script & Voice
-            </button>
+        <!-- Overlays & Blur Censor -->
+        <div class="space-y-3 border-t border-slate-800 pt-4">
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-400">၄။ Censor Blur & Watermark</label>
+          
+          <div class="flex items-center justify-between bg-slate-800/60 p-2.5 rounded-lg border border-slate-750">
+            <span class="text-xs font-medium text-slate-300">Blur Censor Box အသုံးပြုရန်</span>
+            <input type="checkbox" id="blurToggle" onchange="toggleBlurBox(this.checked)" class="w-4 h-4 accent-amber-500 rounded cursor-pointer">
+          </div>
+
+          <div>
+            <span class="text-[11px] text-slate-400 block mb-1">Watermark စာသား</span>
+            <input type="text" id="watermarkText" placeholder="ဥပမာ - @my_channel" oninput="updateWatermark()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-indigo-500">
+          </div>
+          
+          <div class="grid grid-cols-3 gap-1.5">
+            <button onclick="setWatermarkPos('top-left')" class="p-1.5 text-[10px] bg-slate-800 hover:bg-slate-700 rounded text-slate-300 font-medium">ဘယ်ဘက်အပေါ်</button>
+            <button onclick="setWatermarkPos('top-right')" class="p-1.5 text-[10px] bg-slate-800 hover:bg-slate-700 rounded text-slate-300 font-medium">ညာဘက်အပေါ်</button>
+            <button onclick="setWatermarkPos('bottom-right')" class="p-1.5 text-[10px] bg-slate-800 hover:bg-slate-700 rounded text-slate-300 font-medium">ညာဘက်အောက်</button>
+          </div>
         </div>
-    </header>
 
-    <main class="flex-1 p-3 sm:p-6 max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
+      </div>
 
-        <!-- LEFT PANEL: Canvas Player & Timeline (Lg: 7 cols) -->
-        <section class="lg:col-span-7 flex flex-col space-y-4">
+      <!-- RECAP MODE PANEL -->
+      <div id="panelRecap" class="p-4 space-y-5 hidden">
+        <div class="bg-amber-950/30 border border-amber-800/40 p-3 rounded-xl">
+          <div class="flex items-center space-x-2 text-amber-400 font-semibold text-xs mb-1">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+            <span>မြန်မာ AI Recap ထုတ်လုပ်စနစ်</span>
+          </div>
+          <p class="text-[11px] text-amber-200/70">
+            ဇာတ်လမ်း အကြောင်းအရာ ရေးပါ၊ AI မှ မြန်မာဘာသာ ဇာတ်ကြောင်းပြော Script နှင့် Subtitles များကို အလိုအလျောက် ထုတ်ပေးပါမည်။
+          </p>
+        </div>
+
+        <div class="space-y-2">
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Recap အကြောင်းအရာ / Topic</label>
+          <textarea id="recapPrompt" rows="3" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-100 focus:outline-none focus:border-indigo-500" placeholder="ဥပမာ - စိတ်လှုပ်ရှားဖွယ် သိပ္ပံနည်းကျ အာကာသ တိုက်ပွဲ ရုပ်ရှင် အကျဉ်းချုပ်..."></textarea>
+        </div>
+
+        <div class="space-y-2">
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-400">AI Voiceover အသံအမျိုးအစား</label>
+          <select id="recapVoice" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-slate-100">
+            <option value="Kore">Kore (Energetic Female)</option>
+            <option value="Puck">Puck (Dynamic Male)</option>
+            <option value="Fenrir">Fenrir (Deep Cinematic Male)</option>
+            <option value="Zephyr">Zephyr (Calm Female)</option>
+            <option value="Charon">Charon (Narrator Male)</option>
+            <option value="Aoede">Aoede (Soft Female)</option>
+          </select>
+        </div>
+
+        <div class="space-y-2">
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-400">အသံ ချိန်ညှိမှု (Audio Ducking)</label>
+          <div class="space-y-2 bg-slate-850 p-3 rounded-lg border border-slate-800">
+            <div>
+              <div class="flex justify-between text-[11px] text-slate-400 mb-1">
+                <span>မူရင်း ဗီဒီယို အသံ</span>
+                <span id="origVolVal">50%</span>
+              </div>
+              <input type="range" id="origVol" min="0" max="1" step="0.05" value="0.5" oninput="updateAudioVolumes()" class="w-full accent-indigo-500">
+            </div>
+            <div>
+              <div class="flex justify-between text-[11px] text-slate-400 mb-1">
+                <span>AI Voiceover အသံ</span>
+                <span id="aiVolVal">100%</span>
+              </div>
+              <input type="range" id="aiVol" min="0" max="1" step="0.05" value="1.0" oninput="updateAudioVolumes()" class="w-full accent-indigo-500">
+            </div>
+          </div>
+        </div>
+
+        <button id="generateRecapBtn" onclick="generateAIRecap()" class="w-full py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold text-xs rounded-xl shadow-lg transition flex items-center justify-center space-x-2">
+          <i data-lucide="wand-2" class="w-4 h-4"></i>
+          <span>မြန်မာ Script & AI Voiceover ထုတ်မည်</span>
+        </button>
+
+        <!-- Timeline Script Output -->
+        <div id="recapScriptContainer" class="space-y-2 border-t border-slate-800 pt-3 hidden">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400">ထွက်ရှိလာသော မြန်မာ Script Timelines</span>
+          <div id="scriptTimelineList" class="space-y-1.5 max-h-48 overflow-y-auto pr-1"></div>
+        </div>
+
+      </div>
+
+    </aside>
+
+    <!-- RIGHT PANEL: Video Preview Canvas & Timeline Controls -->
+    <main class="flex-1 bg-slate-950 flex flex-col justify-between p-4 overflow-hidden relative">
+      
+      <!-- Top Canvas Bar: Aspect Ratio & Helpers -->
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center space-x-2">
+          <span class="text-xs font-semibold text-slate-400">ဗီဒီယို အချိုးအစား:</span>
+          <button onclick="setAspectRatio('16:9')" id="ratio169Btn" class="px-2.5 py-1 text-xs bg-indigo-600 text-white font-medium rounded">16:9</button>
+          <button onclick="setAspectRatio('9:16')" id="ratio916Btn" class="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium rounded">9:16 (TikTok/Shorts)</button>
+          <button onclick="setAspectRatio('1:1')" id="ratio11Btn" class="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium rounded">1:1 (Square)</button>
+        </div>
+
+        <div class="flex items-center space-x-3">
+          <label class="flex items-center space-x-1.5 text-xs text-slate-400 cursor-pointer">
+            <input type="checkbox" id="guidesToggle" checked onchange="renderFrame()" class="accent-indigo-500 rounded">
+            <span>Drag Handles ပြသရန်</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Main Interactive Preview Canvas Container -->
+      <div class="flex-1 flex items-center justify-center relative min-h-0">
+        <div id="canvasWrapper" class="relative max-w-full max-h-full aspect-video shadow-2xl bg-black rounded-lg overflow-hidden flex items-center justify-center border border-slate-800">
+          
+          <!-- Hidden HTML5 Video Source -->
+          <video id="sourceVideo" class="hidden" playsinline crossorigin="anonymous"></video>
+          
+          <!-- Canvas Element -->
+          <canvas id="editorCanvas" class="w-full h-full block"></canvas>
+
+          <!-- Interactive Drag & Drop Overlays -->
+          <div id="interactiveOverlay" class="absolute inset-0 pointer-events-auto">
             
-            <!-- Video Canvas Screen -->
-            <div class="bg-studio-panel border border-studio-border rounded-2xl overflow-hidden shadow-2xl flex flex-col items-center justify-center relative p-3">
-                <div class="w-full flex justify-between items-center mb-2 px-1 text-xs text-slate-400">
-                    <span class="flex items-center gap-2">
-                        <span class="inline-block w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
-                        <span id="canvas-status">Canvas Preview Ready</span>
-                    </span>
-                    <div class="flex gap-2">
-                        <button onclick="setAspectRatio('16-9')" class="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 hover:border-indigo-500 text-[10px]">16:9</button>
-                        <button onclick="setAspectRatio('9-16')" class="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 hover:border-indigo-500 text-[10px]">9:16 Shorts</button>
-                    </div>
-                </div>
-
-                <div id="canvas-container" class="relative w-full aspect-video bg-black rounded-xl overflow-hidden flex items-center justify-center border border-slate-800 shadow-inner">
-                    <canvas id="videoCanvas" class="max-w-full max-h-full object-contain"></canvas>
-                </div>
-
-                <!-- Transport Controls -->
-                <div class="w-full mt-3 flex items-center justify-between gap-3 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
-                    <div class="flex items-center space-x-2">
-                        <button id="playBtn" onclick="togglePlay()" class="w-10 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center font-bold shadow-lg transition btn-active">
-                            <i id="playIcon" class="fa-solid fa-play"></i>
-                        </button>
-                        <button onclick="restartVideo()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition">
-                            <i class="fa-solid fa-rotate-left text-xs"></i>
-                        </button>
-                    </div>
-
-                    <!-- Time Scrub Bar -->
-                    <div class="flex-1 flex flex-col justify-center">
-                        <input type="range" id="timeScrubber" min="0" max="60" value="0" step="0.1" oninput="seekVideo(this.value)" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500">
-                        <div class="flex justify-between text-[11px] text-slate-400 font-mono mt-1">
-                            <span id="currentTimeDisplay">00:00.0</span>
-                            <span id="durationDisplay">01:00.0</span>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center space-x-1">
-                        <button onclick="toggleMute()" class="w-8 h-8 rounded-lg bg-slate-800 text-slate-300 flex items-center justify-center">
-                            <i id="muteIcon" class="fa-solid fa-volume-high text-xs"></i>
-                        </button>
-                    </div>
-                </div>
+            <!-- Subtitle Interactive Handle -->
+            <div id="subDragHandle" class="absolute cursor-grab active:cursor-grabbing border border-dashed border-indigo-400 bg-indigo-950/30 text-white rounded px-3 py-1 text-center font-bold shadow-lg transition-transform" style="top: 80%; left: 50%; transform: translate(-50%, -50%); min-width: 140px;">
+              <span id="subDragPreviewText" class="text-xs pointer-events-none">[ မြန်မာစာတန်းထိုး နေရာ ]</span>
             </div>
 
-            <div class="bg-studio-panel border border-studio-border rounded-2xl p-4 shadow-xl">
-                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center justify-between">
-                    <span><i class="fa-solid fa-bars-staggered mr-1.5 text-indigo-400"></i> Timeline Tracks</span>
-                    <span class="text-[10px] text-indigo-300">Auto-Synced</span>
-                </h3>
-                
-                <div class="relative bg-slate-950 rounded-xl p-3 border border-slate-800 overflow-x-auto">
-                    <div class="timeline-ruler h-4 w-full mb-2 opacity-30"></div>
-                    <div id="timelineTracks" class="space-y-2 relative min-w-[300px]">
-                        <!-- Subtitle timeline chips rendered dynamically -->
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- RIGHT PANEL: Subtitles & AI Controls (Lg: 5 cols) -->
-        <section class="lg:col-span-5 flex flex-col space-y-4">
-            
-            <!-- SUBTITLE TAB PANEL -->
-            <div id="panel-subtitles" class="bg-studio-panel border border-studio-border rounded-2xl p-4 shadow-xl flex-1 flex flex-col">
-                <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
-                    <h2 class="text-sm font-bold text-white flex items-center">
-                        <i class="fa-solid fa-closed-captioning text-indigo-400 mr-2"></i> Myanmar Subtitles
-                    </h2>
-                    <button onclick="addNewSubtitle()" class="px-3 py-1 bg-indigo-600/90 hover:bg-indigo-600 text-white rounded-lg text-xs font-medium transition flex items-center gap-1">
-                        <i class="fa-solid fa-plus"></i> Add Line
-                    </button>
-                </div>
-
-                <!-- Subtitle List Container -->
-                <div id="subtitleList" class="flex-1 overflow-y-auto space-y-3 max-h-[420px] pr-1">
-                    <!-- Dynamic Subtitle items -->
-                </div>
+            <!-- Blur Box Interactive Censor Box -->
+            <div id="blurCensorBox" class="absolute border-2 border-dashed border-amber-400 bg-amber-500/10 cursor-move hidden" style="top: 20%; left: 20%; width: 25%; height: 25%;">
+              <div class="absolute top-1 left-1 bg-amber-500 text-slate-950 text-[9px] font-bold px-1 rounded pointer-events-none">CENSOR BLUR</div>
+              <div id="blurResizeHandle" class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-amber-400 cursor-nwse-resize"></div>
             </div>
 
-            <div id="panel-ai" class="bg-studio-panel border border-studio-border rounded-2xl p-4 shadow-xl space-y-4 hidden lg:block">
-                <div class="border-b border-slate-800 pb-2">
-                    <h2 class="text-sm font-bold text-white flex items-center">
-                        <i class="fa-solid fa-robot text-pink-400 mr-2"></i> AI Movie Recap & Voiceover
-                    </h2>
-                    <p class="text-[11px] text-slate-400">Gemini-powered script generator for Myanmar recaps</p>
-                </div>
+          </div>
+        </div>
+      </div>
 
-                <div>
-                    <label class="block text-xs text-slate-300 font-medium mb-1">Movie Topic / Prompt</label>
-                    <textarea id="aiPrompt" rows="3" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 focus:border-indigo-500 focus:outline-none placeholder-slate-500" placeholder="ဥပမာ: သိပ္ပံရုပ်ရှင် အညွှန်း recap စာတမ်းထိုးများ ဖန်တီးပေးပါ။..."></textarea>
-                </div>
+      <!-- Bottom Video Player Controls -->
+      <div class="mt-4 bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-2">
+        
+        <!-- Timeline Seekbar -->
+        <div class="flex items-center space-x-3">
+          <span id="currentTimeDisplay" class="text-xs font-mono text-slate-400 w-12 text-right">00:00</span>
+          <input type="range" id="seekBar" value="0" min="0" max="100" step="0.1" oninput="onSeek(this.value)" class="flex-1 accent-indigo-500 h-1.5 bg-slate-700 rounded-lg cursor-pointer">
+          <span id="durationDisplay" class="text-xs font-mono text-slate-400 w-12">00:00</span>
+        </div>
 
-                <div class="flex gap-2">
-                    <button onclick="generateAIScript()" class="flex-1 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl text-xs font-semibold shadow-lg transition flex items-center justify-center gap-1.5 btn-active">
-                        <i class="fa-solid fa-wand-magic-sparkles"></i> AI Script Generator
-                    </button>
-                    <button onclick="generateVoiceover()" class="py-2 px-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl text-xs font-medium transition flex items-center gap-1">
-                        <i class="fa-solid fa-microphone"></i> TTS Voice
-                    </button>
-                </div>
+        <!-- Buttons & Audio Controls -->
+        <div class="flex items-center justify-between pt-1">
+          <div class="flex items-center space-x-2">
+            <button id="playPauseBtn" onclick="togglePlay()" class="p-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition">
+              <i data-lucide="play" class="w-4 h-4"></i>
+            </button>
+            <button onclick="stopVideo()" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition">
+              <i data-lucide="square" class="w-4 h-4"></i>
+            </button>
+          </div>
 
-                <!-- Generated Output Preview -->
-                <div id="aiStatusBox" class="bg-slate-950 rounded-xl p-3 border border-slate-800 text-xs hidden">
-                    <div id="aiStatusText" class="text-indigo-400 flex items-center gap-2">
-                        <i class="fa-solid fa-spinner animate-spin"></i> Processing AI...
-                    </div>
-                </div>
-            </div>
+          <!-- Video Active Subtitle Indicator -->
+          <div class="hidden sm:block text-xs text-slate-300 truncate max-w-xs italic text-center font-mm" id="activeSubText">
+            စာတန်းထိုး မရှိသေးပါ
+          </div>
 
-        </section>
+          <!-- Master Volume -->
+          <div class="flex items-center space-x-2">
+            <i data-lucide="volume-2" class="w-4 h-4 text-slate-400"></i>
+            <input type="range" id="masterVolume" min="0" max="1" step="0.05" value="1" oninput="onVolumeChange(this.value)" class="w-20 accent-indigo-500 h-1.5 bg-slate-700 rounded-lg">
+          </div>
+        </div>
+
+      </div>
 
     </main>
 
-    <script>
-        // App State
-        let isPlaying = false;
-        let currentTime = 0;
-        let duration = 60;
-        let animationFrameId = null;
-        let isMuted = false;
-        let activeTab = 'canvas';
+  </div>
 
-        // Subtitles Data Array (Default Myanmar Captions)
-        let subtitles = [
-            { id: 1, start: 0, end: 5, text: "လွန်ခဲ့သော နှစ်ပေါင်းများစွာက လျှို့ဝှက်ဆန်းကြယ် ကမ္ဘာတစ်ခုတွင်...", speaker: "Narrator" },
-            { id: 2, start: 5.5, end: 12, text: "မင်းသားသည် သူ၏ ရဲတိုက်ကြီးထဲသို့ ပြန်လည်ရောက်ရှိလာခဲ့သည်။", speaker: "Hero" },
-            { id: 3, start: 12.5, end: 18, text: "ဤနေရာတွင် မည်သည့် အရာမှ အရင်လို ငြိမ်းချမ်းတော့မည် မဟုတ်ပေ။", speaker: "Narrator" },
-            { id: 4, start: 19, end: 26, text: "AI Video Editor & Recap Studio မှ ကြိုဆိုပါသည်!", speaker: "System" }
-        ];
+  <!-- Notification Toast Container -->
+  <div id="toast" class="fixed bottom-6 right-6 bg-slate-800 border border-slate-700 text-slate-100 px-4 py-3 rounded-xl shadow-2xl transition-all duration-300 transform translate-y-20 opacity-0 z-50 flex items-center space-x-3">
+    <i id="toastIcon" data-lucide="info" class="w-5 h-5 text-indigo-400"></i>
+    <span id="toastMsg" class="text-xs font-medium">အကြောင်းကြားချက်</span>
+  </div>
 
-        // Canvas Setup
-        const canvas = document.getElementById('videoCanvas');
-        const ctx = canvas.getContext('2d');
-        const canvasContainer = document.getElementById('canvas-container');
+  <!-- Exporting Overlay Modal -->
+  <div id="exportModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex flex-col items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-sm w-full text-center space-y-4 shadow-2xl">
+      <div class="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+      <div>
+        <h3 class="font-bold text-white text-base">ဗီဒီယို ထုတ်လုပ်နေပါသည် (Exporting)</h3>
+        <p class="text-xs text-slate-400 mt-1">မြန်မာစာတန်းထိုး၊ AI Voice နှင့် Effect များကို ပေါင်းစပ်နေသည်...</p>
+      </div>
+      <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+        <div id="exportProgressBar" class="bg-indigo-500 h-full w-0 transition-all"></div>
+      </div>
+      <p id="exportStatusText" class="text-[11px] font-mono text-indigo-400">0% ပြုလုပ်ပြီးပါပြီ</p>
+    </div>
+  </div>
 
-        function resizeCanvas() {
-            const rect = canvasContainer.getBoundingClientRect();
-            canvas.width = rect.width;
-            canvas.height = rect.height;
-            renderFrame();
+  <!-- JavaScript App Logic -->
+  <script>
+    // --- GEMINI API CONFIGURATION ---
+    const apiKey = ""; // System injected API Key
+
+    // Helper to get active API key from UI input or runtime system key
+    function getActiveApiKey() {
+      const inputVal = document.getElementById('customApiKeyInput')?.value?.trim();
+      return inputVal || apiKey || "";
+    }
+
+    function saveCustomApiKey() {
+      const val = document.getElementById('customApiKeyInput').value.trim();
+      if (val) {
+        localStorage.setItem('studioflow_gemini_key', val);
+        updateApiKeyStatus(true);
+      } else {
+        localStorage.removeItem('studioflow_gemini_key');
+        updateApiKeyStatus(false);
+      }
+    }
+
+    function updateApiKeyStatus(hasCustomKey) {
+      const statusEl = document.getElementById('apiKeyStatus');
+      if (statusEl) {
+        if (hasCustomKey) {
+          statusEl.innerText = "Custom Key ထည့်ပြီး ✓";
+          statusEl.className = "text-[10px] px-1.5 py-0.5 rounded bg-indigo-950/80 text-indigo-300 border border-indigo-800/50";
+        } else {
+          statusEl.innerText = "Auto Key အသုံးပြုနေသည်";
+          statusEl.className = "text-[10px] px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-800/50";
         }
+      }
+    }
 
-        window.addEventListener('resize', resizeCanvas);
+    function toggleApiKeyVisibility() {
+      const input = document.getElementById('customApiKeyInput');
+      const icon = document.getElementById('eyeIcon');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.setAttribute('data-lucide', 'eye-off');
+      } else {
+        input.type = 'password';
+        icon.setAttribute('data-lucide', 'eye');
+      }
+      lucide.createIcons();
+    }
 
-        function renderFrame() {
-            const w = canvas.width;
-            const h = canvas.height;
-            if (w === 0 || h === 0) return;
+    // Exponential Backoff Fetch Helper with model fallbacks to handle 404s
+    async function fetchGeminiWithRetry(endpointPath, options, maxRetries = 5) {
+      let delay = 1000;
+      const currentKey = getActiveApiKey();
+      const url = `https://generativelanguage.googleapis.com/v1beta/${endpointPath}?key=${currentKey}`;
 
-            // Clear Background
-            ctx.fillStyle = '#0F172A';
-            ctx.fillRect(0, 0, w, h);
+      for (let i = 0; i < maxRetries; i++) {
+        try {
+          const res = await fetch(url, options);
+          if (res.ok) return await res.json();
+          if (res.status !== 429 && res.status < 500) {
+            const errText = await res.text();
+            throw new Error(`API Error (${res.status}): ${errText}`);
+          }
+        } catch (err) {
+          if (i === maxRetries - 1) throw err;
+        }
+        await new Promise(r => setTimeout(r, delay));
+        delay *= 2;
+      }
+    }
 
-            // Animated Visual Background (Simulated Video Scene)
-            const t = currentTime;
-            const grad = ctx.createLinearGradient(0, 0, w, h);
-            grad.addColorStop(0, `hsl(${(t * 20) % 360}, 60%, 15%)`);
-            grad.addColorStop(1, `hsl(${(t * 20 + 120) % 360}, 70%, 8%)`);
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, w, h);
+    // --- STATE MANAGEMENT ---
+    let currentMode = 'subtitle'; // 'subtitle' | 'recap'
+    let isPlaying = false;
+    let canvas, ctx, video;
+    let subtitles = [];
+    
+    // Subtitle Customization State
+    let subtitleStyle = {
+      fontSize: 28,
+      textColor: '#ffffff',
+      bgColor: '#000000',
+      bgOpacity: 0.6,
+      pos: { x: 50, y: 80 } // relative % position
+    };
 
-            // Dynamic Shapes to simulate action video
-            ctx.save();
-            ctx.translate(w / 2, h / 2);
-            ctx.rotate(t * 0.2);
-            ctx.strokeStyle = 'rgba(99, 102, 241, 0.25)';
-            ctx.lineWidth = 4;
-            ctx.strokeRect(-w * 0.2, -h * 0.2, w * 0.4, h * 0.4);
-            ctx.restore();
+    // Blur Box Censor State
+    let blurBox = {
+      enabled: false,
+      x: 20, // %
+      y: 20, // %
+      w: 25, // %
+      h: 25  // %
+    };
 
-            // Render Active Subtitle Overlay
-            const currentSub = subtitles.find(s => currentTime >= s.start && currentTime <= s.end);
+    // Watermark State
+    let watermark = {
+      text: '',
+      position: 'top-right' // 'top-left' | 'top-right' | 'bottom-right'
+    };
 
-            if (currentSub) {
-                // Subtitle Box Background
-                ctx.font = '700 18px Padauk, Inter, sans-serif';
-                const textWidth = ctx.measureText(currentSub.text).width;
-                const paddingHorizontal = 20;
-                const boxHeight = 40;
-                const boxY = h - 65;
+    // Aspect Ratio & Dimensions
+    let currentAspectRatio = '16:9';
+    const aspectResolutions = {
+      '16:9': { width: 1280, height: 720 },
+      '9:16': { width: 720, height: 1280 },
+      '1:1': { width: 720, height: 720 }
+    };
 
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
-                ctx.roundRect(
-                    (w - textWidth) / 2 - paddingHorizontal,
-                    boxY,
-                    textWidth + paddingHorizontal * 2,
-                    boxHeight,
-                    8
-                );
-                ctx.fill();
-                ctx.strokeStyle = 'rgba(99, 102, 241, 0.5)';
-                ctx.lineWidth = 1;
-                ctx.stroke();
+    // Audio & Recap State
+    let audioCtx = null;
+    let videoAudioSource = null;
+    let videoGainNode = null;
+    let aiVoiceAudio = null;
+    let aiVoiceBuffer = null;
+    let aiVoiceSourceNode = null;
+    let aiVoiceGainNode = null;
+    let isExporting = false;
 
-                // Subtitle Text
-                ctx.fillStyle = '#FFFFFF';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(currentSub.text, w / 2, boxY + boxHeight / 2 + 1);
+    // --- INITIALIZATION ---
+    window.onload = function() {
+      lucide.createIcons();
+      canvas = document.getElementById('editorCanvas');
+      ctx = canvas.getContext('2d');
+      video = document.getElementById('sourceVideo');
+
+      // Restore stored API key if present
+      const savedKey = localStorage.getItem('studioflow_gemini_key');
+      if (savedKey) {
+        document.getElementById('customApiKeyInput').value = savedKey;
+        updateApiKeyStatus(true);
+      } else {
+        updateApiKeyStatus(false);
+      }
+
+      // Set Canvas Standard Specs
+      setAspectRatio('16:9');
+
+      // Event Listeners for Video Element
+      video.addEventListener('timeupdate', onTimeUpdate);
+      video.addEventListener('ended', () => {
+        isPlaying = false;
+        updatePlayButton();
+      });
+
+      // Setup Interactive Canvas Dragging & Resizing
+      setupOverlayInteractions();
+
+      // Start Real-Time Canvas Render Loop
+      requestAnimationFrame(canvasRenderLoop);
+    };
+
+    function showToast(message, type = 'info') {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      toastMsg.innerText = message;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3500);
+    }
+
+    // --- MODE SWITCHER ---
+    function switchMode(mode) {
+      currentMode = mode;
+      const subBtn = document.getElementById('tabSubtitleBtn');
+      const recapBtn = document.getElementById('tabRecapBtn');
+      const subPanel = document.getElementById('panelSubtitle');
+      const recapPanel = document.getElementById('panelRecap');
+
+      if (mode === 'subtitle') {
+        subBtn.className = "flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all bg-indigo-600 text-white shadow-sm";
+        recapBtn.className = "flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all text-slate-400 hover:text-white";
+        subPanel.classList.remove('hidden');
+        recapPanel.classList.add('hidden');
+      } else {
+        recapBtn.className = "flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all bg-indigo-600 text-white shadow-sm";
+        subBtn.className = "flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all text-slate-400 hover:text-white";
+        recapPanel.classList.remove('hidden');
+        subPanel.classList.add('hidden');
+      }
+    }
+
+    // --- ASPECT RATIO TOGGLER ---
+    function setAspectRatio(ratio) {
+      currentAspectRatio = ratio;
+      const { width, height } = aspectResolutions[ratio];
+      canvas.width = width;
+      canvas.height = height;
+
+      const wrapper = document.getElementById('canvasWrapper');
+      wrapper.style.aspectRatio = ratio.replace(':', '/');
+
+      ['169', '916', '11'].forEach(r => {
+        const btn = document.getElementById(`ratio${r}Btn`);
+        btn.className = (ratio.replace(':', '') === r) 
+          ? "px-2.5 py-1 text-xs bg-indigo-600 text-white font-medium rounded"
+          : "px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium rounded";
+      });
+
+      renderFrame();
+    }
+
+    // --- MEDIA HANDLING ---
+    function handleVideoUpload(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const url = URL.createObjectURL(file);
+        video.src = url;
+        video.load();
+        showToast("ဗီဒီယို တင်ယူခြင်း အောင်မြင်ပါသည်!", "success");
+        initAudioContext();
+      }
+    }
+
+    function loadDemoVideo() {
+      createDemoCanvasVideo();
+    }
+
+    function createDemoCanvasVideo() {
+      const demoCanvas = document.createElement('canvas');
+      demoCanvas.width = 1280;
+      demoCanvas.height = 720;
+      const dctx = demoCanvas.getContext('2d');
+      const stream = demoCanvas.captureStream(30);
+
+      let angle = 0;
+      setInterval(() => {
+        angle += 0.05;
+        dctx.fillStyle = '#0f172a';
+        dctx.fillRect(0, 0, 1280, 720);
+        
+        dctx.fillStyle = '#6366f1';
+        dctx.beginPath();
+        dctx.arc(640 + Math.cos(angle) * 300, 360 + Math.sin(angle) * 150, 80, 0, Math.PI * 2);
+        dctx.fill();
+
+        dctx.fillStyle = '#38bdf8';
+        dctx.font = 'bold 36px "Pyidaungsu", sans-serif';
+        dctx.textAlign = 'center';
+        dctx.fillText('မြန်မာ AI ဗီဒီယို DEMO STREAM', 640, 360);
+      }, 33);
+
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+      const chunks = [];
+      mediaRecorder.ondataavailable = e => chunks.push(e.data);
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        video.src = URL.createObjectURL(blob);
+        video.load();
+        showToast("နမူနာ Demo ဗီဒီယို တင်ပြီးပါပြီ!");
+      };
+      mediaRecorder.start();
+      setTimeout(() => mediaRecorder.stop(), 8000);
+    }
+
+    // --- SRT SUBTITLE PARSING (MYANMAR SUPPORT) ---
+    function handleSRTUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        subtitles = parseSRT(evt.target.result);
+        showToast(`SRT မှ မြန်မာစာတန်းထိုး ${subtitles.length} ခု တင်ပြီးပါပြီ!`);
+      };
+      reader.readAsText(file);
+    }
+
+    function parseSRT(data) {
+      const regex = /(\d+)\n(\d\d:\d\d:\d\d[,\.]\d\d\d) --> (\d\d:\d\d:\d\d[,\.]\d\d\d)\n([\s\S]*?)(?=\n\n|\n*$)/g;
+      const result = [];
+      let matches;
+      while ((matches = regex.exec(data)) !== null) {
+        result.push({
+          start: srtTimeToSeconds(matches[2]),
+          end: srtTimeToSeconds(matches[3]),
+          text: matches[4].replace(/\r?\n/g, ' ').trim()
+        });
+      }
+      return result;
+    }
+
+    function srtTimeToSeconds(timeStr) {
+      const p = timeStr.replace(',', '.').split(':');
+      return parseFloat(p[0]) * 3600 + parseFloat(p[1]) * 60 + parseFloat(p[2]);
+    }
+
+    // --- AI MYANMAR SUBTITLE GENERATOR (GEMINI API) ---
+    async function generateAISubtitles() {
+      const aiSubBtn = document.getElementById('aiSubBtn');
+      aiSubBtn.disabled = true;
+      aiSubBtn.innerHTML = `<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i> မြန်မာစာတန်း ထုတ်နေသည်...`;
+      lucide.createIcons();
+
+      try {
+        const prompt = "Generate a 4-line synchronized transcript/subtitles array exclusively in MYANMAR (BURMESE) language (မြန်မာဘာသာ) for a 12-second video scene. Output ONLY valid JSON in this format: [{\"start\": 0, \"end\": 3, \"text\": \"မင်္ဂလာပါ၊ ဤဗီဒီယိုမှ ကြိုဆိုပါတယ်။\"}, {\"start\": 3, \"end\": 6, \"text\": \"အရည်အသွေးမြင့် မြန်မာစာတန်းထိုး ပြုလုပ်ခြင်း။\"}, {\"start\": 6, \"end\": 9, \"text\": \"AI စနစ်ဖြင့် ဗီဒီယို ဖန်တီးပြုပြင်နိုင်ပါသည်။\"}, {\"start\": 9, \"end\": 12, \"text\": \"ချက်ချင်း Export လုပ်ပြီး ရယူလိုက်ပါ။\"}]";
+        
+        // Try preview model first, fallback to standard gemini-2.5-flash if needed
+        let modelPath = 'models/gemini-2.5-flash-preview-09-2025:generateContent';
+        let res;
+        try {
+          res = await fetchGeminiWithRetry(
+            modelPath,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { responseMimeType: "application/json" }
+              })
             }
-
-            // Watermark
-            ctx.font = '12px Inter, sans-serif';
-            ctx.fillStyle = 'rgba(255,255,255,0.3)';
-            ctx.textAlign = 'right';
-            ctx.fillText('AI RECAP STUDIO', w - 15, 25);
+          );
+        } catch (err) {
+          if (err.message.includes('404')) {
+            // Fallback for custom user API keys
+            res = await fetchGeminiWithRetry(
+              'models/gemini-2.5-flash:generateContent',
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  contents: [{ parts: [{ text: prompt }] }],
+                  generationConfig: { responseMimeType: "application/json" }
+                })
+              }
+            );
+          } else {
+            throw err;
+          }
         }
 
-        function togglePlay() {
-            isPlaying = !isPlaying;
-            const icon = document.getElementById('playIcon');
-            const status = document.getElementById('canvas-status');
+        const jsonText = res.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (jsonText) {
+          subtitles = JSON.parse(jsonText);
+          showToast(`မြန်မာ AI စာတန်းထိုး ${subtitles.length} ခု ထုတ်လုပ်ပြီးပါပြီ!`);
+        }
+      } catch (err) {
+        showToast("မြန်မာစာတန်းထိုး ထုတ်ရာတွင် အမှားရှိပါသည်: " + err.message);
+      } finally {
+        aiSubBtn.disabled = false;
+        aiSubBtn.innerHTML = `<i data-lucide="sparkles" class="w-3.5 h-3.5 text-indigo-400"></i><span>မြန်မာ AI စာတန်းထိုး</span>`;
+        lucide.createIcons();
+      }
+    }
 
-            if (isPlaying) {
-                icon.className = 'fa-solid fa-pause';
-                status.innerText = 'Playing Video Preview...';
-                lastTimestamp = performance.now();
-                animate();
-            } else {
-                icon.className = 'fa-solid fa-play';
-                status.innerText = 'Paused';
-                cancelAnimationFrame(animationFrameId);
+    // --- RECAP MODE: MYANMAR SCRIPT & TTS AUDIO SYNTHESIS ---
+    async function generateAIRecap() {
+      const promptInput = document.getElementById('recapPrompt').value.trim() || "စိတ်လှုပ်ရှားဖွယ် ရုပ်ရှင် အကျဉ်းချုပ်";
+      const voiceTone = document.getElementById('recapVoice').value;
+      const btn = document.getElementById('generateRecapBtn');
+      
+      btn.disabled = true;
+      btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> မြန်မာ Script & Audio ဖန်တီးနေသည်...`;
+      lucide.createIcons();
+
+      try {
+        // Step 1: Generate Script & Subtitle Timing in MYANMAR LANGUAGE ONLY
+        const scriptPrompt = `You are a professional movie recap voiceover script writer. Write an exciting 3-sentence recap story strictly in MYANMAR LANGUAGE (မြန်မာဘာသာ) based on the user topic: "${promptInput}". Provide JSON output format array: [{"start": 0, "end": 4, "text": "မြန်မာစာသား ၁"}, {"start": 4, "end": 8, "text": "မြန်မာစာသား ၂"}, {"start": 8, "end": 12, "text": "မြန်မာစာသား ၃"}]`;
+        
+        let scriptRes;
+        try {
+          scriptRes = await fetchGeminiWithRetry(
+            'models/gemini-2.5-flash-preview-09-2025:generateContent',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: scriptPrompt }] }],
+                generationConfig: { responseMimeType: "application/json" }
+              })
             }
+          );
+        } catch (err) {
+          if (err.message.includes('404')) {
+            scriptRes = await fetchGeminiWithRetry(
+              'models/gemini-2.5-flash:generateContent',
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  contents: [{ parts: [{ text: scriptPrompt }] }],
+                  generationConfig: { responseMimeType: "application/json" }
+                })
+              }
+            );
+          } else {
+            throw err;
+          }
         }
 
-        let lastTimestamp = 0;
-        function animate(now = performance.now()) {
-            if (!isPlaying) return;
-            const delta = (now - lastTimestamp) / 1000;
-            lastTimestamp = now;
+        const scriptJson = JSON.parse(scriptRes.candidates[0].content.parts[0].text);
+        subtitles = scriptJson;
 
-            currentTime += delta;
-            if (currentTime >= duration) {
-                currentTime = 0;
-            }
+        // Display Generated Timelines
+        renderScriptTimelineUI(scriptJson);
 
-            updateProgressUI();
-            renderFrame();
-            animationFrameId = requestAnimationFrame(animate);
-        }
+        // Combine script for voiceover
+        const fullScriptText = scriptJson.map(s => s.text).join(' ');
 
-        function seekVideo(val) {
-            currentTime = parseFloat(val);
-            updateProgressUI();
-            renderFrame();
-        }
-
-        function restartVideo() {
-            currentTime = 0;
-            updateProgressUI();
-            renderFrame();
-        }
-
-        function updateProgressUI() {
-            document.getElementById('timeScrubber').value = currentTime;
-            document.getElementById('currentTimeDisplay').innerText = formatTime(currentTime);
-        }
-
-        function formatTime(seconds) {
-            const mins = Math.floor(seconds / 60);
-            const secs = Math.floor(seconds % 60);
-            const ms = Math.floor((seconds % 1) * 10);
-            return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${ms}`;
-        }
-
-        function setAspectRatio(ratio) {
-            const container = document.getElementById('canvas-container');
-            if (ratio === '9-16') {
-                container.className = 'relative w-full max-w-[280px] aspect-[9/16] bg-black rounded-xl overflow-hidden flex items-center justify-center border border-slate-800 shadow-inner mx-auto';
-            } else {
-                container.className = 'relative w-full aspect-video bg-black rounded-xl overflow-hidden flex items-center justify-center border border-slate-800 shadow-inner';
-            }
-            setTimeout(resizeCanvas, 50);
-        }
-
-        function renderSubtitleList() {
-            const container = document.getElementById('subtitleList');
-            const timelineContainer = document.getElementById('timelineTracks');
-            container.innerHTML = '';
-            timelineContainer.innerHTML = '';
-
-            subtitles.forEach((sub, index) => {
-                // UI Card for Subtitles
-                const item = document.createElement('div');
-                item.className = 'bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-2 transition hover:border-slate-700';
-                item.innerHTML = `
-                    <div class="flex justify-between items-center text-xs text-slate-400">
-                        <span class="font-mono text-indigo-400 font-bold">#${index + 1} (${sub.start}s - ${sub.end}s)</span>
-                        <div class="flex items-center space-x-1">
-                            <button onclick="jumpToSub(${sub.start})" class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-[10px] text-slate-300">
-                                <i class="fa-solid fa-play mr-1"></i>Seek
-                            </button>
-                            <button onclick="deleteSub(${sub.id})" class="p-1 hover:text-red-400 transition text-slate-500">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <textarea onchange="updateSubText(${sub.id}, this.value)" rows="2" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-100 font-myanmar focus:border-indigo-500 focus:outline-none">${sub.text}</textarea>
-                `;
-                container.appendChild(item);
-
-                // Timeline visual bar
-                const chip = document.createElement('div');
-                const leftPct = (sub.start / duration) * 100;
-                const widthPct = Math.max(((sub.end - sub.start) / duration) * 100, 5);
-                chip.className = 'absolute h-6 bg-indigo-600/60 border border-indigo-400 rounded-md text-[10px] px-2 flex items-center text-white truncate font-myanmar cursor-pointer hover:bg-indigo-500';
-                chip.style.left = leftPct + '%';
-                chip.style.width = widthPct + '%';
-                chip.innerText = sub.text;
-                chip.onclick = () => jumpToSub(sub.start);
-                timelineContainer.appendChild(chip);
-            });
-        }
-
-        function jumpToSub(time) {
-            currentTime = time;
-            updateProgressUI();
-            renderFrame();
-        }
-
-        function updateSubText(id, text) {
-            const sub = subtitles.find(s => s.id === id);
-            if (sub) {
-                sub.text = text;
-                renderFrame();
-                renderSubtitleList();
-            }
-        }
-
-        function addNewSubtitle() {
-            const lastEnd = subtitles.length > 0 ? subtitles[subtitles.length - 1].end : 0;
-            const newSub = {
-                id: Date.now(),
-                start: Math.min(lastEnd + 0.5, duration - 5),
-                end: Math.min(lastEnd + 5.5, duration),
-                text: "စာတမ်းထိုး စာသားအသစ် ထည့်သွင်းပါ...",
-                speaker: "Speaker"
-            };
-            subtitles.push(newSub);
-            renderSubtitleList();
-            renderFrame();
-        }
-
-        function deleteSub(id) {
-            subtitles = subtitles.filter(s => s.id !== id);
-            renderSubtitleList();
-            renderFrame();
-        }
-
-        async function generateAIScript() {
-            const promptInput = document.getElementById('aiPrompt').value || "သိပ္ပံရုပ်ရှင် အကျဉ်းချုပ် ရိုက်ကူးရေး စာတမ်းထိုး ရေးပေးပါ။";
-            const statusBox = document.getElementById('aiStatusBox');
-            const statusText = document.getElementById('aiStatusText');
-
-            statusBox.classList.remove('hidden');
-            statusText.innerHTML = `<i class="fa-solid fa-spinner animate-spin text-indigo-400"></i> Gemini AI ဖြင့် မြန်မာ စာတမ်းထိုး ဖန်တီးနေပါသည်...`;
-
-            try {
-                // Call Gemini API
-                const apiKey = "";
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
-                
-                const systemPrompt = "You are a professional video recap narrator. Generate 3 short movie recap subtitle lines in Myanmar language format. Return plain Myanmar text lines separated by line breaks.";
-
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: promptInput }] }],
-                        systemInstruction: { parts: [{ text: systemPrompt }] }
-                    })
-                });
-
-                const data = await response.json();
-                const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-                if (aiText) {
-                    const lines = aiText.split('\n').filter(l => l.trim().length > 0);
-                    subtitles = [];
-                    let startTime = 0;
-
-                    lines.slice(0, 5).forEach((line, idx) => {
-                        subtitles.push({
-                            id: Date.now() + idx,
-                            start: startTime,
-                            end: startTime + 6,
-                            text: line.replace(/^[0-9\.\-\s]+/, ''),
-                            speaker: "AI Narrator"
-                        });
-                        startTime += 6.5;
-                    });
-
-                    statusText.className = "text-emerald-400 font-medium flex items-center gap-2";
-                    statusText.innerHTML = `<i class="fa-solid fa-circle-check"></i> AI စာတမ်းထိုးများ အောင်မြင်စွာ ထည့်သွင်းပြီးပါပြီ!`;
-                    renderSubtitleList();
-                    renderFrame();
-                } else {
-                    throw new Error("Invalid AI response");
+        // Step 2: Synthesize AI Voiceover Audio using Gemini TTS
+        const ttsRes = await fetchGeminiWithRetry(
+          'models/gemini-2.5-flash-preview-tts:generateContent',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: "gemini-2.5-flash-preview-tts",
+              contents: [{ parts: [{ text: `Say clearly with enthusiasm: ${fullScriptText}` }] }],
+              generationConfig: {
+                responseModalities: ["AUDIO"],
+                speechConfig: {
+                  voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceTone } }
                 }
-            } catch (err) {
-                statusText.className = "text-amber-400 text-xs flex items-center gap-2";
-                statusText.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Demo Mode: ဥပမာ AI Recap များကို ထည့်သွင်းလိုက်ပါသည်။`;
-                
-                // Fallback Mock Subtitles
-                subtitles = [
-                    { id: Date.now(), start: 0, end: 5, text: "ဒီရုပ်ရှင်ထဲမှာ ခေါင်းဆောင်မင်းသားဟာ ထူးဆန်းတဲ့ ဂြိုဟ်သစ်တစ်ခုဆီ ရောက်ရှိခဲ့ပါတယ်။", speaker: "AI Recap" },
-                    { id: Date.now() + 1, start: 5.5, end: 11, text: "ထိုနေရာမှာ အလွန် အန္တရာယ်များတဲ့ သတ္တဝါဆန်းတွေနဲ့ ရင်ဆိုင်ခဲ့ရပါတယ်။", speaker: "AI Recap" },
-                    { id: Date.now() + 2, start: 11.5, end: 18, text: "နောက်ဆုံးမှာတော့ သူတို့အဖွဲ့ဟာ ကမ္ဘာမြေကို ဘေးကင်းစွာ ပြန်နိုင်ခဲ့ပါတယ်။", speaker: "AI Recap" }
-                ];
-                renderSubtitleList();
-                renderFrame();
-            }
+              }
+            })
+          }
+        );
+
+        const base64Pcm = ttsRes.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+        if (base64Pcm) {
+          // Convert PCM16 to WAV Blob & Load into Audio Buffer
+          const wavBlob = pcmToWav(base64Pcm, 24000);
+          const arrayBuffer = await wavBlob.arrayBuffer();
+          
+          initAudioContext();
+          aiVoiceBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+          showToast("မြန်မာ AI Voiceover နှင့် Script အဆင်သင့်ဖြစ်ပါပြီ!");
         }
 
-        function generateVoiceover() {
-            const statusBox = document.getElementById('aiStatusBox');
-            const statusText = document.getElementById('aiStatusText');
-            statusBox.classList.remove('hidden');
-            statusText.className = "text-indigo-400 font-medium flex items-center gap-2";
-            statusText.innerHTML = `<i class="fa-solid fa-waveform animate-pulse"></i> AI Voiceover audio timing preview synchronized.`;
-            setTimeout(() => {
-                statusText.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> Voiceover Sync Ready!`;
-            }, 1000);
+      } catch (err) {
+        showToast("Recap ဖန်တီးမှု မအောင်မြင်ပါ: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-lucide="wand-2" class="w-4 h-4"></i><span>မြန်မာ Script & AI Voiceover ထုတ်မည်</span>`;
+        lucide.createIcons();
+      }
+    }
+
+    function renderScriptTimelineUI(list) {
+      const container = document.getElementById('recapScriptContainer');
+      const listEl = document.getElementById('scriptTimelineList');
+      container.classList.remove('hidden');
+      listEl.innerHTML = '';
+
+      list.forEach((item, idx) => {
+        const itemEl = document.createElement('div');
+        itemEl.className = "p-2 bg-slate-800 rounded border border-slate-700 text-xs flex justify-between items-start space-x-2 font-mm";
+        itemEl.innerHTML = `
+          <span class="font-mono text-indigo-400 shrink-0">${item.start}s - ${item.end}s</span>
+          <span class="text-slate-200">${item.text}</span>
+        `;
+        listEl.appendChild(itemEl);
+      });
+    }
+
+    // --- PCM16 TO WAV CONVERTER HELPER ---
+    function pcmToWav(base64Pcm, sampleRate = 24000) {
+      const binaryString = atob(base64Pcm);
+      const len = binaryString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const pcm16 = new Int16Array(bytes.buffer);
+      const buffer = new ArrayBuffer(44 + pcm16.length * 2);
+      const view = new DataView(buffer);
+
+      function writeString(view, offset, string) {
+        for (let i = 0; i < string.length; i++) {
+          view.setUint8(offset + i, string.charCodeAt(i));
+        }
+      }
+
+      writeString(view, 0, 'RIFF');
+      view.setUint32(4, 36 + pcm16.length * 2, true);
+      writeString(view, 8, 'WAVE');
+      writeString(view, 12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true); // Raw PCM
+      view.setUint16(22, 1, true); // Mono channel
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * 2, true);
+      view.setUint16(32, 2, true);
+      view.setUint16(34, 16, true);
+      writeString(view, 36, 'data');
+      view.setUint32(40, pcm16.length * 2, true);
+
+      let offset = 44;
+      for (let i = 0; i < pcm16.length; i++, offset += 2) {
+        view.setInt16(offset, pcm16[i], true);
+      }
+
+      return new Blob([view], { type: 'audio/wav' });
+    }
+
+    // --- WEB AUDIO API SETUP ---
+    function initAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        videoGainNode = audioCtx.createGain();
+        aiVoiceGainNode = audioCtx.createGain();
+
+        try {
+          videoAudioSource = audioCtx.createMediaElementSource(video);
+          videoAudioSource.connect(videoGainNode);
+          videoGainNode.connect(audioCtx.destination);
+        } catch(e) { /* Source already connected */ }
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      updateAudioVolumes();
+    }
+
+    function updateAudioVolumes() {
+      const origVol = parseFloat(document.getElementById('origVol').value);
+      const aiVol = parseFloat(document.getElementById('aiVol').value);
+
+      document.getElementById('origVolVal').innerText = Math.round(origVol * 100) + '%';
+      document.getElementById('aiVolVal').innerText = Math.round(aiVol * 100) + '%';
+
+      if (videoGainNode) videoGainNode.gain.value = origVol;
+      if (aiVoiceGainNode) aiVoiceGainNode.gain.value = aiVol;
+    }
+
+    function playAIVoiceover() {
+      if (!aiVoiceBuffer || !audioCtx) return;
+      if (aiVoiceSourceNode) {
+        try { aiVoiceSourceNode.stop(); } catch(e){}
+      }
+      aiVoiceSourceNode = audioCtx.createBufferSource();
+      aiVoiceSourceNode.buffer = aiVoiceBuffer;
+      aiVoiceSourceNode.connect(aiVoiceGainNode);
+      aiVoiceGainNode.connect(audioCtx.destination);
+      aiVoiceSourceNode.start(0, video.currentTime);
+    }
+
+    // --- INTERACTIVE DRAG & DROP ON CANVAS OVERLAY ---
+    function setupOverlayInteractions() {
+      const overlay = document.getElementById('interactiveOverlay');
+      const subHandle = document.getElementById('subDragHandle');
+      const blurBoxEl = document.getElementById('blurCensorBox');
+      const resizeHandle = document.getElementById('blurResizeHandle');
+
+      let isDraggingSub = false;
+      let isDraggingBlur = false;
+      let isResizingBlur = false;
+      let startX, startY, startW, startH;
+
+      // Subtitle Drag
+      subHandle.addEventListener('pointerdown', (e) => {
+        isDraggingSub = true;
+        subHandle.setPointerCapture(e.pointerId);
+      });
+
+      // Blur Box Drag
+      blurBoxEl.addEventListener('pointerdown', (e) => {
+        if (e.target === resizeHandle) return;
+        isDraggingBlur = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        blurBoxEl.setPointerCapture(e.pointerId);
+      });
+
+      // Blur Box Resize
+      resizeHandle.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        isResizingBlur = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        startW = blurBoxEl.offsetWidth;
+        startH = blurBoxEl.offsetHeight;
+        resizeHandle.setPointerCapture(e.pointerId);
+      });
+
+      overlay.addEventListener('pointermove', (e) => {
+        const rect = overlay.getBoundingClientRect();
+        
+        if (isDraggingSub) {
+          let x = ((e.clientX - rect.left) / rect.width) * 100;
+          let y = ((e.clientY - rect.top) / rect.height) * 100;
+          subtitleStyle.pos.x = Math.max(5, Math.min(95, x));
+          subtitleStyle.pos.y = Math.max(5, Math.min(95, y));
+          subHandle.style.left = `${subtitleStyle.pos.x}%`;
+          subHandle.style.top = `${subtitleStyle.pos.y}%`;
+          renderFrame();
         }
 
-        function switchTab(tab) {
-            activeTab = tab;
-            document.getElementById('tab-btn-canvas').className = tab === 'canvas' ? 'flex-1 sm:flex-none px-4 py-1.5 rounded-lg font-medium transition-all bg-indigo-600 text-white shadow' : 'flex-1 sm:flex-none px-4 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition-all';
-            document.getElementById('tab-btn-subtitles').className = tab === 'subtitles' ? 'flex-1 sm:flex-none px-4 py-1.5 rounded-lg font-medium transition-all bg-indigo-600 text-white shadow' : 'flex-1 sm:flex-none px-4 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition-all';
-            document.getElementById('tab-btn-ai').className = tab === 'ai' ? 'flex-1 sm:flex-none px-4 py-1.5 rounded-lg font-medium transition-all bg-indigo-600 text-white shadow' : 'flex-1 sm:flex-none px-4 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition-all';
-
-            const subPanel = document.getElementById('panel-subtitles');
-            const aiPanel = document.getElementById('panel-ai');
-
-            if (window.innerWidth < 1024) {
-                if (tab === 'subtitles') {
-                    subPanel.classList.remove('hidden');
-                    aiPanel.classList.add('hidden');
-                } else if (tab === 'ai') {
-                    aiPanel.classList.remove('hidden');
-                    subPanel.classList.add('hidden');
-                } else {
-                    subPanel.classList.remove('hidden');
-                    aiPanel.classList.add('hidden');
-                }
-            }
+        if (isDraggingBlur) {
+          const dx = ((e.clientX - startX) / rect.width) * 100;
+          const dy = ((e.clientY - startY) / rect.height) * 100;
+          blurBox.x = Math.max(0, Math.min(100 - blurBox.w, blurBox.x + dx));
+          blurBox.y = Math.max(0, Math.min(100 - blurBox.h, blurBox.y + dy));
+          startX = e.clientX;
+          startY = e.clientY;
+          updateBlurBoxUI();
+          renderFrame();
         }
 
-        // Initialize App
-        window.onload = function() {
-            resizeCanvas();
-            renderSubtitleList();
-            renderFrame();
-        };
-    </script>
+        if (isResizingBlur) {
+          const dw = ((e.clientX - startX) / rect.width) * 100;
+          const dh = ((e.clientY - startY) / rect.height) * 100;
+          blurBox.w = Math.max(5, Math.min(100 - blurBox.x, blurBox.w + dw));
+          blurBox.h = Math.max(5, Math.min(100 - blurBox.y, blurBox.h + dh));
+          startX = e.clientX;
+          startY = e.clientY;
+          updateBlurBoxUI();
+          renderFrame();
+        }
+      });
+
+      overlay.addEventListener('pointerup', () => {
+        isDraggingSub = false;
+        isDraggingBlur = false;
+        isResizingBlur = false;
+      });
+    }
+
+    function updateBlurBoxUI() {
+      const box = document.getElementById('blurCensorBox');
+      box.style.left = `${blurBox.x}%`;
+      box.style.top = `${blurBox.y}%`;
+      box.style.width = `${blurBox.w}%`;
+      box.style.height = `${blurBox.h}%`;
+    }
+
+    function toggleBlurBox(enabled) {
+      blurBox.enabled = enabled;
+      const box = document.getElementById('blurCensorBox');
+      if (enabled) box.classList.remove('hidden');
+      else box.classList.add('hidden');
+      renderFrame();
+    }
+
+    function updateSubtitleStyle() {
+      subtitleStyle.fontSize = parseInt(document.getElementById('subFontSize').value);
+      subtitleStyle.textColor = document.getElementById('subTextColor').value;
+      subtitleStyle.bgColor = document.getElementById('subBgColor').value;
+      subtitleStyle.bgOpacity = parseFloat(document.getElementById('subBgOpacity').value);
+      renderFrame();
+    }
+
+    function updateWatermark() {
+      watermark.text = document.getElementById('watermarkText').value.trim();
+      renderFrame();
+    }
+
+    function setWatermarkPos(pos) {
+      watermark.position = pos;
+      renderFrame();
+    }
+
+    // --- CANVAS RENDER ENGINE WITH MYANMAR FONT SUPPORT ---
+    function canvasRenderLoop() {
+      renderFrame();
+      requestAnimationFrame(canvasRenderLoop);
+    }
+
+    function renderFrame() {
+      if (!ctx || !canvas) return;
+
+      const cw = canvas.width;
+      const ch = canvas.height;
+
+      // 1. Clear Canvas
+      ctx.fillStyle = '#020617';
+      ctx.fillRect(0, 0, cw, ch);
+
+      // 2. Draw Main Video Frame
+      if (video.readyState >= 2) {
+        const vRatio = video.videoWidth / video.videoHeight;
+        const cRatio = cw / ch;
+        let dw, dh, dx, dy;
+
+        if (vRatio > cRatio) {
+          dw = cw;
+          dh = cw / vRatio;
+          dx = 0;
+          dy = (ch - dh) / 2;
+        } else {
+          dh = ch;
+          dw = ch * vRatio;
+          dx = (cw - dw) / 2;
+          dy = 0;
+        }
+
+        ctx.drawImage(video, dx, dy, dw, dh);
+      } else {
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(0, 0, cw, ch);
+        ctx.fillStyle = '#64748b';
+        ctx.font = '24px "Pyidaungsu", "Padauk", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('ဗီဒီယို တင်ပါ သို့မဟုတ် Demo သုံးပါ', cw / 2, ch / 2);
+      }
+
+      // 3. Render Blur Censor Box
+      if (blurBox.enabled) {
+        const bx = (blurBox.x / 100) * cw;
+        const by = (blurBox.y / 100) * ch;
+        const bw = (blurBox.w / 100) * cw;
+        const bh = (blurBox.h / 100) * ch;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(bx, by, bw, bh);
+        ctx.clip();
+        ctx.filter = 'blur(16px)';
+        
+        if (video.readyState >= 2) {
+          ctx.drawImage(video, 0, 0, cw, ch);
+        } else {
+          ctx.fillStyle = '#475569';
+          ctx.fillRect(0, 0, cw, ch);
+        }
+        ctx.restore();
+
+        const guidesToggle = document.getElementById('guidesToggle').checked;
+        if (guidesToggle && !isExporting) {
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([6, 4]);
+          ctx.strokeRect(bx, by, bw, bh);
+          ctx.setLineDash([]);
+        }
+      }
+
+      // 4. Render Watermark
+      if (watermark.text) {
+        ctx.save();
+        ctx.font = `600 ${Math.round(cw * 0.025)}px "Pyidaungsu", sans-serif`;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.shadowColor = 'rgba(0,0,0,0.8)';
+        ctx.shadowBlur = 4;
+
+        let wx = cw * 0.95;
+        let wy = ch * 0.08;
+        ctx.textAlign = 'right';
+
+        if (watermark.position === 'top-left') {
+          wx = cw * 0.05;
+          wy = ch * 0.08;
+          ctx.textAlign = 'left';
+        } else if (watermark.position === 'bottom-right') {
+          wx = cw * 0.95;
+          wy = ch * 0.92;
+          ctx.textAlign = 'right';
+        }
+
+        ctx.fillText(watermark.text, wx, wy);
+        ctx.restore();
+      }
+
+      // 5. Render Active Myanmar Subtitle
+      const currentTime = video.currentTime || 0;
+      const activeSub = subtitles.find(s => currentTime >= s.start && currentTime <= s.end);
+      const activeSubTextEl = document.getElementById('activeSubText');
+
+      if (activeSub) {
+        activeSubTextEl.innerText = `"${activeSub.text}"`;
+        
+        const subX = (subtitleStyle.pos.x / 100) * cw;
+        const subY = (subtitleStyle.pos.y / 100) * ch;
+
+        ctx.save();
+        ctx.font = `bold ${subtitleStyle.fontSize}px "Pyidaungsu", "Padauk", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        const textMetrics = ctx.measureText(activeSub.text);
+        const textWidth = textMetrics.width;
+        const textHeight = subtitleStyle.fontSize * 1.3;
+        const padding = 16;
+
+        // Draw Background Box
+        ctx.fillStyle = hexToRgba(subtitleStyle.bgColor, subtitleStyle.bgOpacity);
+        ctx.beginPath();
+        ctx.roundRect(
+          subX - textWidth / 2 - padding,
+          subY - textHeight / 2 - padding / 2,
+          textWidth + padding * 2,
+          textHeight + padding,
+          8
+        );
+        ctx.fill();
+
+        // Draw Text
+        ctx.fillStyle = subtitleStyle.textColor;
+        ctx.fillText(activeSub.text, subX, subY);
+        ctx.restore();
+
+        document.getElementById('subDragPreviewText').innerText = activeSub.text;
+      } else {
+        activeSubTextEl.innerText = 'စာတန်းထိုး မရှိသေးပါ';
+        document.getElementById('subDragPreviewText').innerText = '[ မြန်မာစာတန်းထိုး နေရာ ]';
+      }
+
+      const guidesToggle = document.getElementById('guidesToggle').checked;
+      const overlay = document.getElementById('interactiveOverlay');
+      if (guidesToggle && !isExporting) {
+        overlay.style.display = 'block';
+      } else {
+        overlay.style.display = 'none';
+      }
+    }
+
+    function hexToRgba(hex, alpha) {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    // --- VIDEO PLAYER CONTROLS ---
+    function togglePlay() {
+      if (video.paused) {
+        initAudioContext();
+        video.play();
+        isPlaying = true;
+        if (aiVoiceBuffer) playAIVoiceover();
+      } else {
+        video.pause();
+        isPlaying = false;
+        if (aiVoiceSourceNode) try { aiVoiceSourceNode.stop(); } catch(e){}
+      }
+      updatePlayButton();
+    }
+
+    function stopVideo() {
+      video.pause();
+      video.currentTime = 0;
+      isPlaying = false;
+      if (aiVoiceSourceNode) try { aiVoiceSourceNode.stop(); } catch(e){}
+      updatePlayButton();
+    }
+
+    function updatePlayButton() {
+      const btn = document.getElementById('playPauseBtn');
+      btn.innerHTML = isPlaying ? `<i data-lucide="pause" class="w-4 h-4"></i>` : `<i data-lucide="play" class="w-4 h-4"></i>`;
+      lucide.createIcons();
+    }
+
+    function onSeek(val) {
+      const targetTime = (val / 100) * (video.duration || 1);
+      video.currentTime = targetTime;
+      renderFrame();
+    }
+
+    function onTimeUpdate() {
+      const seek = document.getElementById('seekBar');
+      const cur = document.getElementById('currentTimeDisplay');
+      const dur = document.getElementById('durationDisplay');
+
+      if (video.duration) {
+        seek.value = (video.currentTime / video.duration) * 100;
+        cur.innerText = formatTime(video.currentTime);
+        dur.innerText = formatTime(video.duration);
+      }
+    }
+
+    function onVolumeChange(val) {
+      video.volume = val;
+    }
+
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60);
+      return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+
+    // --- CLIENT-SIDE VIDEO EXPORT (MEDIARECORDER & CANVAS STREAM) ---
+    async function startExport() {
+      if (video.readyState < 2 && subtitles.length === 0) {
+        showToast("ကျေးဇူးပြု၍ ဗီဒီယိုကို အရင်တင်ပါ!");
+        return;
+      }
+
+      isExporting = true;
+      const modal = document.getElementById('exportModal');
+      const progressBar = document.getElementById('exportProgressBar');
+      const statusText = document.getElementById('exportStatusText');
+      modal.classList.remove('hidden');
+
+      const canvasStream = canvas.captureStream(30);
+
+      initAudioContext();
+      const audioDestination = audioCtx.createMediaStreamDestination();
+      
+      if (videoAudioSource) videoAudioSource.connect(audioDestination);
+      if (aiVoiceGainNode) aiVoiceGainNode.connect(audioDestination);
+
+      const combinedStream = new MediaStream([
+        ...canvasStream.getVideoTracks(),
+        ...audioDestination.stream.getAudioTracks()
+      ]);
+
+      let mimeType = 'video/webm;codecs=vp9';
+      if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm';
+
+      const mediaRecorder = new MediaRecorder(combinedStream, { mimeType });
+      const recordedChunks = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) recordedChunks.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `StudioFlow_Myanmar_Video_${Date.now()}.webm`;
+        a.click();
+
+        isExporting = false;
+        modal.classList.add('hidden');
+        showToast("ဗီဒီယို ဒေါင်းလုဒ်ဆွဲခြင်း အောင်မြင်ပါသည်။", "success");
+      };
+
+      video.currentTime = 0;
+      if (aiVoiceBuffer) playAIVoiceover();
+      
+      mediaRecorder.start();
+      video.play();
+
+      const progressInterval = setInterval(() => {
+        if (!video.duration) return;
+        const progress = Math.min(100, Math.round((video.currentTime / video.duration) * 100));
+        progressBar.style.width = `${progress}%`;
+        statusText.innerText = `${progress}% ပြုလုပ်ပြီးပါပြီ`;
+
+        if (video.ended || video.currentTime >= video.duration) {
+          clearInterval(progressInterval);
+          mediaRecorder.stop();
+          video.pause();
+        }
+      }, 200);
+    }
+  </script>
 </body>
 </html>
